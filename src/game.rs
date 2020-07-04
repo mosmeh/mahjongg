@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 
 pub struct Game {
     map: Map,
+    background_color: [f32; 4],
     tiles: Vec<Tile>,
     tile_texture: G2dTexture,
     selected: Option<usize>,
@@ -40,7 +41,7 @@ impl Game {
         let height = geometry.image_size.height;
 
         window.draw_2d(event, |c, g, _| {
-            clear([0.20, 0.22, 0.36, 0.0], g);
+            clear(self.background_color, g);
 
             for (i, tile) in self.tiles.iter().enumerate() {
                 if !tile.visible {
@@ -299,49 +300,41 @@ fn get_image_offset(id: usize) -> usize {
 
 pub struct GameBuilder<'a> {
     window: &'a mut PistonWindow,
-    tileset_file: Option<PathBuf>,
-    map_file: Option<PathBuf>,
-    map_name: Option<String>,
+    tileset_file: PathBuf,
+    map_file: PathBuf,
+    layout_name: String,
+    background_color: [f32; 3],
 }
 
 impl<'a> GameBuilder<'a> {
     pub fn new(window: &'a mut PistonWindow) -> Self {
         Self {
             window,
-            tileset_file: None,
-            map_file: None,
-            map_name: None,
+            tileset_file: PathBuf::from("/usr/share/gnome-mahjongg/themes/smooth.png"),
+            map_file: PathBuf::from("/usr/share/gnome-mahjongg/maps/mahjongg.map"),
+            layout_name: "easy".to_string(),
+            background_color: [52.0 / 255.0, 56.0 / 255.0, 91.0 / 255.0],
         }
     }
 
     pub fn build(&mut self) -> Result<Game> {
         let tile_texture = Texture::from_path(
             &mut self.window.create_texture_context(),
-            self.tileset_file
-                .as_ref()
-                .ok_or_else(|| anyhow!("Tileset file not provided"))?,
+            &self.tileset_file,
             Flip::None,
             &TextureSettings::new(),
         )
         .map_err(|_| anyhow!("Failed to load texture"))?;
 
-        let mut maps = map::parse_maps(
-            self.map_file
-                .as_ref()
-                .ok_or_else(|| anyhow!("Map file not provided"))?,
-        )?;
-        let map_name = self
-            .map_name
-            .as_ref()
-            .ok_or_else(|| anyhow!("Map name not provided"))?;
+        let mut maps = map::parse_maps(&self.map_file)?;
 
         let mut map = maps
-            .remove(map_name)
+            .remove(&self.layout_name)
             .ok_or_else(|| anyhow!("Map not found"))?;
         map.slots.sort_by(|a, b| {
             a.z.cmp(&b.z)
-                .then_with(|| a.y.cmp(&b.y))
                 .then_with(|| b.x.cmp(&a.x))
+                .then_with(|| a.y.cmp(&b.y))
         });
 
         let mut tiles: Vec<_> = map
@@ -359,6 +352,12 @@ impl<'a> GameBuilder<'a> {
 
         let game = Game {
             map,
+            background_color: [
+                self.background_color[0],
+                self.background_color[1],
+                self.background_color[2],
+                1.0,
+            ],
             tiles,
             tile_texture,
             selected: None,
@@ -369,17 +368,22 @@ impl<'a> GameBuilder<'a> {
     }
 
     pub fn tileset_file<P: AsRef<Path>>(&mut self, tileset_file: P) -> &mut Self {
-        self.tileset_file = Some(tileset_file.as_ref().to_path_buf());
+        self.tileset_file = tileset_file.as_ref().to_path_buf();
         self
     }
 
     pub fn map_file<P: AsRef<Path>>(&mut self, map_file: P) -> &mut Self {
-        self.map_file = Some(map_file.as_ref().to_path_buf());
+        self.map_file = map_file.as_ref().to_path_buf();
         self
     }
 
-    pub fn map_name(&mut self, map_name: &str) -> &mut Self {
-        self.map_name = Some(map_name.to_string());
+    pub fn layout_name(&mut self, layout_name: &str) -> &mut Self {
+        self.layout_name = layout_name.to_string();
+        self
+    }
+
+    pub fn background_color(&mut self, background_color: &[f32; 3]) -> &mut Self {
+        self.background_color = *background_color;
         self
     }
 }
