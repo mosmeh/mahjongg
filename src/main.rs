@@ -10,22 +10,24 @@ use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
-    name = "mahjongg",
+    name = env!("CARGO_PKG_NAME"),
     author = env!("CARGO_PKG_AUTHORS"),
     rename_all = "kebab-case",
+    setting(clap::AppSettings::ColoredHelp),
+    setting(clap::AppSettings::DeriveDisplayOrder),
 )]
 struct Opt {
-    /// Width of window
+    /// Width of window in pixels
     #[structopt(short, long, default_value = "900")]
     width: u32,
 
-    /// Height of window
+    /// Height of window in pixels
     #[structopt(short, long, default_value = "600")]
     height: u32,
 
-    /// Tileset image file (GNOME Mahjongg format)
+    /// Theme file (GNOME Mahjongg format)
     #[structopt(short, long)]
-    tileset: Option<PathBuf>,
+    theme: Option<PathBuf>,
 
     /// Map file (GNOME Mahjongg format)
     #[structopt(short, long)]
@@ -43,20 +45,21 @@ struct Opt {
 fn main() -> Result<()> {
     let opt = Opt::from_args();
 
-    let mut window: PistonWindow = WindowSettings::new("Mahjongg", [opt.width, opt.height])
-        .build()
-        .map_err(|_| anyhow!("Failed to create window"))?;
+    let mut window: PistonWindow =
+        WindowSettings::new(env!("CARGO_PKG_NAME"), [opt.width, opt.height])
+            .build()
+            .map_err(|_| anyhow!("Failed to create window"))?;
     window.set_lazy(true);
 
     let mut builder = GameBuilder::new(&mut window);
-    if let Some(tileset) = opt.tileset {
-        builder.tileset_file(tileset);
+    if let Some(theme) = opt.theme {
+        builder.theme_file(theme);
     }
-    if let Some(map_file) = opt.map {
-        builder.map_file(map_file);
+    if let Some(map) = opt.map {
+        builder.map_file(map);
     }
-    if let Some(layout_file) = opt.layout {
-        builder.layout_name(&layout_file);
+    if let Some(layout) = opt.layout {
+        builder.layout_name(&layout);
     }
     if let Some(background_color) = opt.background {
         let color = parse_color(&background_color)?;

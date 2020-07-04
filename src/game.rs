@@ -8,7 +8,7 @@ pub struct Game {
     map: Map,
     background_color: [f32; 4],
     tiles: Vec<Tile>,
-    tile_texture: G2dTexture,
+    theme_texture: G2dTexture,
     selected: Option<usize>,
     cursor_pos: Option<[f64; 2]>,
     history: Vec<(usize, usize)>,
@@ -64,7 +64,7 @@ impl Game {
                     .trans(pos.x as f64 - texture_x, pos.y as f64 - texture_y)
                     .scale(geometry.image_scale.width, geometry.image_scale.height);
 
-                Image::new().draw(&self.tile_texture, &draw_state, transform, g);
+                Image::new().draw(&self.theme_texture, &draw_state, transform, g);
             }
         });
     }
@@ -118,6 +118,7 @@ impl Game {
     }
 
     fn on_right_click(&mut self) {
+        // undo
         if let Some(last) = self.history.pop() {
             self.tiles[last.0].visible = true;
             self.tiles[last.1].visible = true;
@@ -159,7 +160,7 @@ impl Game {
     }
 
     fn calc_geometry(&self, draw_size: Size) -> Geometry {
-        let theme_size = self.tile_texture.get_size();
+        let theme_size = self.theme_texture.get_size();
         let theme_aspect = (theme_size.1 as f64 / 2.0) / (theme_size.0 as f64 / 43.0);
         let map_size = Size::from([
             (self.map.width + 2) as f64,
@@ -300,7 +301,7 @@ fn get_image_offset(id: usize) -> usize {
 
 pub struct GameBuilder<'a> {
     window: &'a mut PistonWindow,
-    tileset_file: PathBuf,
+    theme_file: PathBuf,
     map_file: PathBuf,
     layout_name: String,
     background_color: [f32; 3],
@@ -310,7 +311,7 @@ impl<'a> GameBuilder<'a> {
     pub fn new(window: &'a mut PistonWindow) -> Self {
         Self {
             window,
-            tileset_file: PathBuf::from("/usr/share/gnome-mahjongg/themes/smooth.png"),
+            theme_file: PathBuf::from("/usr/share/gnome-mahjongg/themes/postmodern.svg"),
             map_file: PathBuf::from("/usr/share/gnome-mahjongg/maps/mahjongg.map"),
             layout_name: "easy".to_string(),
             background_color: [52.0 / 255.0, 56.0 / 255.0, 91.0 / 255.0],
@@ -318,16 +319,24 @@ impl<'a> GameBuilder<'a> {
     }
 
     pub fn build(&mut self) -> Result<Game> {
-        let tile_texture = Texture::from_path(
-            &mut self.window.create_texture_context(),
-            &self.tileset_file,
-            Flip::None,
-            &TextureSettings::new(),
-        )
-        .map_err(|_| anyhow!("Failed to load texture"))?;
+        let theme_texture = if let Ok(buf) = render_svg(&self.theme_file) {
+            Texture::from_image(
+                &mut self.window.create_texture_context(),
+                &buf,
+                &TextureSettings::new(),
+            )
+            .map_err(|_| anyhow!("Failed to load texture"))?
+        } else {
+            Texture::from_path(
+                &mut self.window.create_texture_context(),
+                &self.theme_file,
+                Flip::None,
+                &TextureSettings::new(),
+            )
+            .map_err(|_| anyhow!("Failed to load texture"))?
+        };
 
         let mut maps = map::parse_maps(&self.map_file)?;
-
         let mut map = maps
             .remove(&self.layout_name)
             .ok_or_else(|| anyhow!("Map not found"))?;
@@ -342,7 +351,7 @@ impl<'a> GameBuilder<'a> {
             .iter()
             .map(|slot| Tile {
                 id: 0,
-                slot: (*slot).clone(),
+                slot: slot.clone(),
                 visible: true,
             })
             .collect();
@@ -359,7 +368,7 @@ impl<'a> GameBuilder<'a> {
                 1.0,
             ],
             tiles,
-            tile_texture,
+            theme_texture,
             selected: None,
             cursor_pos: None,
             history: Vec::new(),
@@ -367,8 +376,8 @@ impl<'a> GameBuilder<'a> {
         Ok(game)
     }
 
-    pub fn tileset_file<P: AsRef<Path>>(&mut self, tileset_file: P) -> &mut Self {
-        self.tileset_file = tileset_file.as_ref().to_path_buf();
+    pub fn theme_file<P: AsRef<Path>>(&mut self, theme_file: P) -> &mut Self {
+        self.theme_file = theme_file.as_ref().to_path_buf();
         self
     }
 
@@ -483,4 +492,14 @@ fn find_matches<'a>(index: usize, tiles: &'a [Tile]) -> impl Iterator<Item = Mat
                 && tile_is_exposed(*i, tiles)
         })
         .map(move |i| Match(i, index))
+}
+
+fn render_svg<P: AsRef<Path>>(path: P) -> Result<::image::RgbaImage> {
+    let tree = usvg::Tree::from_file(path, &usvg::Options::default())?;
+    let image = resvg::render(&tree, usvg::FitTo::Original, None)
+        .ok_or_else(|| anyhow!("Failed to render SVG"))?;
+    let buf = ::image::RgbaImage::from_raw(image.width(), image.height(), image.data().to_vec())
+        .ok_or_else(|| anyhow!("Failed to construct image buffer from rendered SVG"))?;
+
+    Ok(buf)
 }

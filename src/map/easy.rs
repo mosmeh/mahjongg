@@ -7,7 +7,7 @@ lazy_static! {
     pub static ref MAP: Map = {
         macro_rules! slots {
             ($(($x:expr, $y:expr, $z:expr)),*) => {
-                [$(crate::map::Slot{x: $x, y: $y, z: $z},)*]
+                vec![$(crate::map::Slot{x: $x, y: $y, z: $z},)*]
             }
         }
 
@@ -161,7 +161,7 @@ lazy_static! {
         let (width, height) = super::calc_size(&slots);
 
         Map {
-            slots: slots.to_vec(),
+            slots,
             width,
             height,
         }
