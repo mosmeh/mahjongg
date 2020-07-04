@@ -17,6 +17,10 @@ jobs:
           rust: stable
     steps:
     - uses: actions/checkout@v2
+    - if: matrix.os == 'windows-2019'
+      run: |
+        choco install llvm
+        echo "::add-path::C:\Program Files\LLVM\bin"
     - uses: hecrj/setup-rust-action@v1
       with:
         rust-version: ${{ matrix.rust }}
