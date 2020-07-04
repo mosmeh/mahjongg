@@ -1,0 +1,13 @@
+[package]
+name = "mahjongg"
+version = "0.1.0"
+authors = ["mosm <airman515@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+anyhow = "1.0.31"
+piston_window = "0.109.0"
+rand = "0.7.3"
+serde = { version = "1.0.114", features = ["derive"] }
+serde-xml-rs = "0.4.0"
+structopt = "0.3.15"
