@@ -23,16 +23,24 @@ struct Opt {
     height: u32,
 
     /// tileset image file (GNOME Mahjongg format)
-    #[structopt(short, long)]
+    #[structopt(
+        short,
+        long,
+        default_value = "/usr/share/gnome-mahjongg/themes/smooth.png"
+    )]
     tileset: PathBuf,
 
-    /// layout file (GNOME Mahjongg format)
-    #[structopt(short = "d", long)]
-    layout_file: PathBuf,
+    /// map file (GNOME Mahjongg format)
+    #[structopt(
+        short,
+        long,
+        default_value = "/usr/share/gnome-mahjongg/maps/mahjongg.map"
+    )]
+    map_file: PathBuf,
 
-    /// layout name
-    #[structopt(short = "l", long)]
-    layout_name: String,
+    /// map name
+    #[structopt(short = "n", long, default_value = "easy")]
+    map_name: String,
 }
 
 fn main() -> Result<()> {
@@ -46,8 +54,8 @@ fn main() -> Result<()> {
 
     let mut game = GameBuilder::new(&mut window)
         .tileset_file(opt.tileset)
-        .layout_file(opt.layout_file)
-        .layout_name(&opt.layout_name)
+        .map_file(opt.map_file)
+        .map_name(&opt.map_name)
         .build()?;
 
     game.run(&mut window);

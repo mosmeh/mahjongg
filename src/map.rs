@@ -1,3 +1,5 @@
+mod easy;
+
 use anyhow::Result;
 use std::collections::HashMap;
 use std::fs::File;
@@ -99,13 +101,26 @@ pub struct Map {
     pub height: usize,
 }
 
+fn calc_size(slots: &[Slot]) -> (usize, usize) {
+    let mut width = 0;
+    let mut height = 0;
+    for slot in slots {
+        width = width.max(slot.x);
+        height = height.max(slot.y);
+    }
+
+    (width + 2, height + 2)
+}
+
 pub fn parse_maps<P: AsRef<Path>>(path: P) -> Result<HashMap<String, Map>> {
     use xml::Item::*;
 
     let reader = BufReader::new(File::open(path)?);
     let def: xml::MapDef = serde_xml_rs::from_reader(reader)?;
 
-    let mut hashmap = HashMap::new();
+    let mut hashmap: HashMap<String, Map> = HashMap::new();
+    hashmap.insert(easy::NAME.to_string(), easy::MAP.clone());
+
     for map in def.maps {
         let mut slots = Vec::new();
 
@@ -139,18 +154,12 @@ pub fn parse_maps<P: AsRef<Path>>(path: P) -> Result<HashMap<String, Map>> {
             }
         }
 
-        let mut width = 0;
-        let mut height = 0;
-        for slot in &slots {
-            width = width.max(slot.x);
-            height = height.max(slot.y);
-        }
-
         let name = map.scorename;
+        let (width, height) = calc_size(&slots);
         let map = Map {
             slots,
-            width: width + 2,
-            height: height + 2,
+            width,
+            height,
         };
         hashmap.insert(name, map);
     }

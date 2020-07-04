@@ -645,6 +645,7 @@ name = "mahjongg"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "lazy_static",
  "piston_window",
  "rand",
  "serde",

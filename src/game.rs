@@ -300,8 +300,8 @@ fn get_image_offset(id: usize) -> usize {
 pub struct GameBuilder<'a> {
     window: &'a mut PistonWindow,
     tileset_file: Option<PathBuf>,
-    layout_file: Option<PathBuf>,
-    layout_name: Option<String>,
+    map_file: Option<PathBuf>,
+    map_name: Option<String>,
 }
 
 impl<'a> GameBuilder<'a> {
@@ -309,8 +309,8 @@ impl<'a> GameBuilder<'a> {
         Self {
             window,
             tileset_file: None,
-            layout_file: None,
-            layout_name: None,
+            map_file: None,
+            map_name: None,
         }
     }
 
@@ -326,18 +326,18 @@ impl<'a> GameBuilder<'a> {
         .map_err(|_| anyhow!("Failed to load texture"))?;
 
         let mut maps = map::parse_maps(
-            self.layout_file
+            self.map_file
                 .as_ref()
-                .ok_or_else(|| anyhow!("Layout file not provided"))?,
+                .ok_or_else(|| anyhow!("Map file not provided"))?,
         )?;
-        let layout_name = self
-            .layout_name
+        let map_name = self
+            .map_name
             .as_ref()
-            .ok_or_else(|| anyhow!("Layout name not provided"))?;
+            .ok_or_else(|| anyhow!("Map name not provided"))?;
 
         let mut map = maps
-            .remove(layout_name)
-            .ok_or_else(|| anyhow!("Layout not found"))?;
+            .remove(map_name)
+            .ok_or_else(|| anyhow!("Map not found"))?;
         map.slots.sort_by(|a, b| {
             a.z.cmp(&b.z)
                 .then_with(|| a.y.cmp(&b.y))
@@ -373,13 +373,13 @@ impl<'a> GameBuilder<'a> {
         self
     }
 
-    pub fn layout_file<P: AsRef<Path>>(&mut self, layout_file: P) -> &mut Self {
-        self.layout_file = Some(layout_file.as_ref().to_path_buf());
+    pub fn map_file<P: AsRef<Path>>(&mut self, map_file: P) -> &mut Self {
+        self.map_file = Some(map_file.as_ref().to_path_buf());
         self
     }
 
-    pub fn layout_name(&mut self, layout_name: &str) -> &mut Self {
-        self.layout_name = Some(layout_name.to_string());
+    pub fn map_name(&mut self, map_name: &str) -> &mut Self {
+        self.map_name = Some(map_name.to_string());
         self
     }
 }
