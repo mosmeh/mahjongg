@@ -14,6 +14,7 @@ lazy_static = "1.4.0"
 piston_window = "0.109.0"
 rand = "0.7.3"
 resvg = "0.11.0"
+rust-ini = "0.15.3"
 serde = { version = "1.0.114", features = ["derive"] }
 serde-xml-rs = "0.4.0"
 structopt = "0.3.15"

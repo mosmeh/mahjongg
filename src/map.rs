@@ -1,90 +1,9 @@
 pub mod default;
+mod gnome_mahjongg;
+mod kmahjongg;
 
 use anyhow::Result;
-use std::fs::File;
-use std::io::BufReader;
 use std::path::Path;
-
-mod xml {
-    use serde::{Deserialize, Deserializer};
-
-    #[derive(Deserialize)]
-    pub struct MapDef {
-        #[serde(rename = "map")]
-        pub maps: Vec<Map>,
-    }
-
-    #[derive(Deserialize)]
-    pub struct Map {
-        pub name: String,
-        pub scorename: String,
-        #[serde(rename = "layer")]
-        pub layers: Vec<Layer>,
-    }
-
-    #[derive(Deserialize)]
-    pub struct Layer {
-        pub z: isize,
-        #[serde(rename = "$value")]
-        pub items: Vec<Item>,
-    }
-
-    #[derive(Deserialize)]
-    #[serde(rename_all = "lowercase")]
-    pub enum Item {
-        Row {
-            #[serde(deserialize_with = "deserialize_pos")]
-            left: isize,
-            #[serde(deserialize_with = "deserialize_pos")]
-            right: isize,
-            #[serde(deserialize_with = "deserialize_pos")]
-            y: isize,
-        },
-        Column {
-            #[serde(deserialize_with = "deserialize_pos")]
-            x: isize,
-            #[serde(deserialize_with = "deserialize_pos")]
-            top: isize,
-            #[serde(deserialize_with = "deserialize_pos")]
-            bottom: isize,
-        },
-        Block {
-            #[serde(deserialize_with = "deserialize_pos")]
-            left: isize,
-            #[serde(deserialize_with = "deserialize_pos")]
-            right: isize,
-            #[serde(deserialize_with = "deserialize_pos")]
-            top: isize,
-            #[serde(deserialize_with = "deserialize_pos")]
-            bottom: isize,
-        },
-        Tile {
-            #[serde(deserialize_with = "deserialize_pos")]
-            x: isize,
-            #[serde(deserialize_with = "deserialize_pos")]
-            y: isize,
-        },
-    }
-
-    fn deserialize_pos<'de, D>(deserializer: D) -> Result<isize, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let string = String::deserialize(deserializer)?;
-        if string.ends_with(".5") {
-            string
-                .trim_end_matches(".5")
-                .parse()
-                .map(|x: isize| x * 2 + 1)
-                .map_err(serde::de::Error::custom)
-        } else {
-            string
-                .parse()
-                .map(|x: isize| x * 2)
-                .map_err(serde::de::Error::custom)
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Slot {
@@ -101,6 +20,48 @@ pub struct Map {
     pub height: usize,
 }
 
+pub fn load_from_paths<P: AsRef<Path>>(paths: &[P]) -> Vec<Map> {
+    let mut maps = vec![default::EASY.clone()];
+
+    for path in paths {
+        if path.as_ref().is_file() {
+            if let Ok(mut loaded) = load_maps(path) {
+                maps.append(&mut loaded);
+            }
+        } else if path.as_ref().is_dir() {
+            if let Ok(rd) = path.as_ref().read_dir() {
+                for entry in rd {
+                    if let Ok(entry) = entry {
+                        if let Ok(mut loaded) = load_maps(entry.path()) {
+                            maps.append(&mut loaded);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    maps
+}
+
+pub fn load_maps<P: AsRef<Path>>(path: P) -> Result<Vec<Map>> {
+    let ext = path
+        .as_ref()
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.to_lowercase());
+
+    if let Some(ext) = ext {
+        match &ext[..] {
+            "map" => return gnome_mahjongg::load(path),
+            "desktop" => return kmahjongg::load(path),
+            _ => (),
+        }
+    }
+
+    Err(anyhow::anyhow!("Not a map file"))
+}
+
 fn calc_size(slots: &[Slot]) -> (usize, usize) {
     let mut width = 0;
     let mut height = 0;
@@ -110,71 +71,4 @@ fn calc_size(slots: &[Slot]) -> (usize, usize) {
     }
 
     (width as usize + 2, height as usize + 2)
-}
-
-pub fn parse_maps<P: AsRef<Path>>(path: P) -> Result<Vec<Map>> {
-    use xml::Item::*;
-
-    let reader = BufReader::new(File::open(path)?);
-    let def: xml::MapDef = serde_xml_rs::from_reader(reader)?;
-
-    let mut maps = vec![default::EASY.clone()];
-    maps.reserve(def.maps.len());
-
-    for map in def.maps {
-        let mut slots = Vec::new();
-
-        for layer in map.layers {
-            for item in layer.items {
-                match item {
-                    Row { left, right, y } => {
-                        for x in (left..=right).step_by(2) {
-                            slots.push(Slot { x, y, z: layer.z });
-                        }
-                    }
-                    Column { x, top, bottom } => {
-                        for y in (top..=bottom).step_by(2) {
-                            slots.push(Slot { x, y, z: layer.z });
-                        }
-                    }
-                    Block {
-                        left,
-                        right,
-                        top,
-                        bottom,
-                    } => {
-                        for x in (left..=right).step_by(2) {
-                            for y in (top..=bottom).step_by(2) {
-                                slots.push(Slot { x, y, z: layer.z })
-                            }
-                        }
-                    }
-                    Tile { x, y } => slots.push(Slot { x, y, z: layer.z }),
-                }
-            }
-        }
-
-        let (width, height) = calc_size(&slots);
-        maps.push(Map {
-            name: map.name,
-            slots,
-            width,
-            height,
-        });
-    }
-
-    Ok(maps)
-}
-
-#[allow(dead_code)]
-pub fn load_map<P: AsRef<Path>>(path: P, name: &str) -> Result<Map> {
-    if name == default::EASY.name {
-        Ok(default::EASY.clone())
-    } else {
-        let map = parse_maps(path)?
-            .into_iter()
-            .find(|map| map.name == name)
-            .ok_or_else(|| anyhow::anyhow!("Layout not found"))?;
-        Ok(map)
-    }
 }

@@ -21,10 +21,20 @@ sudo apt install -y gnome-mahjongg
 mahjongg
 ```
 
-On Windows and other systems where `gnome-mahjongg` is not available, download `gnome-mahjongg`'s assets from [here](https://gitlab.gnome.org/GNOME/gnome-mahjongg/-/tree/master/data) and provide them with command-line options:
+On Windows and other systems where `gnome-mahjongg` is not available, clone [gnome-mahjongg's repository](https://gitlab.gnome.org/GNOME/gnome-mahjongg) and provide its assets with command-line options:
 
 ```sh
-mahjongg -t postmodern.svg -m mahjongg.map
+mahjongg -t gnome-mahjongg/data/postmodern.svg -m gnome-mahjongg/data/mahjongg.map
+```
+
+You can also play with [KMahjongg](https://github.com/KDE/kmahjongg)'s layouts:
+
+```sh
+sudo apt install -y kmahjongg
+mahjongg -m /usr/share/kmahjongg/layouts
+
+# or clone the repository and
+mahjongg -m kmahjongg/layouts
 ```
 
 ## Command-line options
@@ -34,7 +44,7 @@ mahjongg -t postmodern.svg -m mahjongg.map
 -h, --height <height>            Height of window in pixels [default: 600]
 -t, --theme <theme>              Theme file (GNOME Mahjongg format) [default: /usr/share/gnome-
                                     mahjongg/themes/postmodern.svg]
--m, --map <map>                  Map file (GNOME Mahjongg format) [default: /usr/share/gnome-
-                                    mahjongg/maps/mahjongg.map]
+-m, --map <map>...               Map files or directories containing map files (GNOME Mahjongg or KMahjongg format)
+                                    [default: /usr/share/gnome-mahjongg/maps/]
 -b, --background <background>    Background color [default: #34385b]
 ```

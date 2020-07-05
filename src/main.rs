@@ -33,13 +33,9 @@ struct Opt {
     )]
     theme: PathBuf,
 
-    /// Map file (GNOME Mahjongg format)
-    #[structopt(
-        short,
-        long,
-        default_value = "/usr/share/gnome-mahjongg/maps/mahjongg.map"
-    )]
-    map: PathBuf,
+    /// Map files or directories containing map files (GNOME Mahjongg or KMahjongg format)
+    #[structopt(short, long, default_value = "/usr/share/gnome-mahjongg/maps/")]
+    map: Vec<PathBuf>,
 
     /// Background color
     #[structopt(short, long, default_value = "#34385b")]
@@ -52,16 +48,14 @@ fn main() -> Result<()> {
     anyhow::ensure!(opt.theme.exists(), "Theme file not found");
 
     let map = {
-        let mut maps = if opt.map.exists() {
-            map::parse_maps(opt.map)?
-        } else {
-            eprintln!("Map file not found. Will default to built-in layout.");
-            vec![map::default::EASY.clone()]
-        };
+        let mut maps = map::load_from_paths(&opt.map);
 
         match maps.len() {
             0 => unreachable!(),
-            1 => maps.swap_remove(0),
+            1 => {
+                eprintln!("Failed to load any maps. Will default to built-in layout.");
+                maps.swap_remove(0)
+            }
             _ => {
                 use dialoguer::theme::ColorfulTheme;
                 use dialoguer::Select;
@@ -69,6 +63,7 @@ fn main() -> Result<()> {
                 if let Some(selected) = Select::with_theme(&ColorfulTheme::default())
                     .items(&maps.iter().map(|map| &map.name).collect::<Vec<_>>())
                     .default(0)
+                    .paged(true)
                     .interact_opt()?
                 {
                     maps.swap_remove(selected)

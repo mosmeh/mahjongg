@@ -271,9 +271,9 @@ impl Geometry {
 fn get_image_offset(id: usize) -> usize {
     let set = id / 4;
 
-    /* Invalid numbers use the blank tile */
+    // Invalid ids
     if set >= 36 {
-        return 42;
+        unreachable!()
     }
 
     /* The bonus tiles have different images for each */
@@ -383,8 +383,20 @@ impl<'a> GameBuilder<'a> {
 
 /// Generates random solvable configuration
 fn fill_random_ids(tiles: &mut [Tile], rng: &mut ThreadRng) -> Result<()> {
-    let mut pairs: Vec<usize> = (0..tiles.len() / 2).collect();
-    pairs.shuffle(rng);
+    // it is based on the behavior of KMahjongg, not GNOME Mahjongg
+    let pairs: Vec<usize> = std::iter::repeat_with(|| {
+        let mut pairs: Vec<usize> = (0..144 / 2).collect();
+        pairs.shuffle(rng);
+        pairs
+    })
+    .flatten()
+    .take(tiles.len() / 2)
+    .collect();
+
+    // GNOME Mahjongg version is:
+    // let mut pairs: Vec<usize> = (0..tiles.len() / 2).collect();
+    // pairs.shuffle(rng);
+    // but it doesn't support #tiles > 144 and has more biased tile distribution
 
     let succeeded = fill_random_ids_impl(tiles, &pairs, 0, rng);
     for tile in tiles {
