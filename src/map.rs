@@ -1,7 +1,6 @@
-mod easy;
+pub mod default;
 
 use anyhow::Result;
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
@@ -96,6 +95,7 @@ pub struct Slot {
 
 #[derive(Debug, Clone)]
 pub struct Map {
+    pub name: String,
     pub slots: Vec<Slot>,
     pub width: usize,
     pub height: usize,
@@ -112,14 +112,14 @@ fn calc_size(slots: &[Slot]) -> (usize, usize) {
     (width + 2, height + 2)
 }
 
-pub fn parse_maps<P: AsRef<Path>>(path: P) -> Result<HashMap<String, Map>> {
+pub fn parse_maps<P: AsRef<Path>>(path: P) -> Result<Vec<Map>> {
     use xml::Item::*;
 
     let reader = BufReader::new(File::open(path)?);
     let def: xml::MapDef = serde_xml_rs::from_reader(reader)?;
 
-    let mut hashmap: HashMap<String, Map> = HashMap::new();
-    hashmap.insert(easy::NAME.to_string(), easy::MAP.clone());
+    let mut maps = vec![default::EASY.clone()];
+    maps.reserve(def.maps.len());
 
     for map in def.maps {
         let mut slots = Vec::new();
@@ -154,15 +154,27 @@ pub fn parse_maps<P: AsRef<Path>>(path: P) -> Result<HashMap<String, Map>> {
             }
         }
 
-        let name = map.scorename;
         let (width, height) = calc_size(&slots);
-        let map = Map {
+        maps.push(Map {
+            name: map.name,
             slots,
             width,
             height,
-        };
-        hashmap.insert(name, map);
+        });
     }
 
-    Ok(hashmap)
+    Ok(maps)
+}
+
+#[allow(dead_code)]
+pub fn load_map<P: AsRef<Path>>(path: P, name: &str) -> Result<Map> {
+    if name == default::EASY.name {
+        Ok(default::EASY.clone())
+    } else {
+        let map = parse_maps(path)?
+            .into_iter()
+            .find(|map| map.name == name)
+            .ok_or_else(|| anyhow::anyhow!("Layout not found"))?;
+        Ok(map)
+    }
 }

@@ -26,47 +26,71 @@ struct Opt {
     height: u32,
 
     /// Theme file (GNOME Mahjongg format)
-    #[structopt(short, long)]
-    theme: Option<PathBuf>,
+    #[structopt(
+        short,
+        long,
+        default_value = "/usr/share/gnome-mahjongg/themes/postmodern.svg"
+    )]
+    theme: PathBuf,
 
     /// Map file (GNOME Mahjongg format)
-    #[structopt(short, long)]
-    map: Option<PathBuf>,
-
-    /// Layout name
-    #[structopt(short, long)]
-    layout: Option<String>,
+    #[structopt(
+        short,
+        long,
+        default_value = "/usr/share/gnome-mahjongg/maps/mahjongg.map"
+    )]
+    map: PathBuf,
 
     /// Background color
-    #[structopt(short, long)]
-    background: Option<String>,
+    #[structopt(short, long, default_value = "#34385b")]
+    background: String,
 }
 
 fn main() -> Result<()> {
     let opt = Opt::from_args();
 
-    let mut window: PistonWindow =
-        WindowSettings::new(env!("CARGO_PKG_NAME"), [opt.width, opt.height])
-            .build()
-            .map_err(|_| anyhow!("Failed to create window"))?;
+    anyhow::ensure!(opt.theme.exists(), "Theme file not found");
+
+    let map = {
+        let mut maps = if opt.map.exists() {
+            map::parse_maps(opt.map)?
+        } else {
+            eprintln!("Map file not found. Will default to built-in layout.");
+            vec![map::default::EASY.clone()]
+        };
+
+        match maps.len() {
+            0 => unreachable!(),
+            1 => maps.swap_remove(0),
+            _ => {
+                use dialoguer::theme::ColorfulTheme;
+                use dialoguer::Select;
+
+                if let Some(selected) = Select::with_theme(&ColorfulTheme::default())
+                    .items(&maps.iter().map(|map| &map.name).collect::<Vec<_>>())
+                    .default(0)
+                    .interact_opt()?
+                {
+                    maps.swap_remove(selected)
+                } else {
+                    return Ok(());
+                }
+            }
+        }
+    };
+    let background_color = parse_color(&opt.background)?;
+
+    let mut window: PistonWindow = WindowSettings::new(&map.name, [opt.width, opt.height])
+        .build()
+        .map_err(|_| anyhow!("Failed to create window"))?;
     window.set_lazy(true);
 
-    let mut builder = GameBuilder::new(&mut window);
-    if let Some(theme) = opt.theme {
-        builder.theme_file(theme);
-    }
-    if let Some(map) = opt.map {
-        builder.map_file(map);
-    }
-    if let Some(layout) = opt.layout {
-        builder.layout_name(&layout);
-    }
-    if let Some(background_color) = opt.background {
-        let color = parse_color(&background_color)?;
-        builder.background_color(&color);
-    }
+    let mut game = GameBuilder::new(&mut window)
+        .theme_file(opt.theme)
+        .map(map)
+        .background_color(&background_color)
+        .build()?;
 
-    let mut game = builder.build()?;
     game.run(&mut window);
 
     Ok(())

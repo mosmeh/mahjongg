@@ -1,10 +1,8 @@
 use super::Map;
 use lazy_static::lazy_static;
 
-pub static NAME: &str = "easy";
-
 lazy_static! {
-    pub static ref MAP: Map = {
+    pub static ref EASY: Map = {
         macro_rules! slots {
             ($(($x:expr, $y:expr, $z:expr)),*) => {
                 vec![$(crate::map::Slot{x: $x, y: $y, z: $z},)*]
@@ -161,6 +159,7 @@ lazy_static! {
         let (width, height) = super::calc_size(&slots);
 
         Map {
+            name: "Easy".to_string(),
             slots,
             width,
             height,

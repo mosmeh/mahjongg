@@ -27,19 +27,14 @@ On Windows and other systems where `gnome-mahjongg` is not available, download `
 mahjongg -t postmodern.svg -m mahjongg.map
 ```
 
-You can choose layouts with `-n` option:
-
-```sh
-mahjongg -n ziggurat
-```
-
 ## Command-line options
 
 ```
 -w, --width <width>              Width of window in pixels [default: 900]
 -h, --height <height>            Height of window in pixels [default: 600]
--t, --theme <theme>              Theme file (GNOME Mahjongg format)
--m, --map <map>                  Map file (GNOME Mahjongg format)
--l, --layout <layout>            Layout name
--b, --background <background>    Background color
+-t, --theme <theme>              Theme file (GNOME Mahjongg format) [default: /usr/share/gnome-
+                                    mahjongg/themes/postmodern.svg]
+-m, --map <map>                  Map file (GNOME Mahjongg format) [default: /usr/share/gnome-
+                                    mahjongg/maps/mahjongg.map]
+-b, --background <background>    Background color [default: #34385b]
 ```

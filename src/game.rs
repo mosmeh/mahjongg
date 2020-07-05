@@ -122,6 +122,12 @@ impl Game {
         if let Some(last) = self.history.pop() {
             self.tiles[last.0].visible = true;
             self.tiles[last.1].visible = true;
+
+            if let Some(selected) = &self.selected {
+                if !tile_is_exposed(*selected, &self.tiles) {
+                    self.selected = None;
+                }
+            }
         }
     }
 
@@ -301,9 +307,8 @@ fn get_image_offset(id: usize) -> usize {
 
 pub struct GameBuilder<'a> {
     window: &'a mut PistonWindow,
-    theme_file: PathBuf,
-    map_file: PathBuf,
-    layout_name: String,
+    theme_file: Option<PathBuf>,
+    map: Map,
     background_color: [f32; 3],
 }
 
@@ -311,15 +316,19 @@ impl<'a> GameBuilder<'a> {
     pub fn new(window: &'a mut PistonWindow) -> Self {
         Self {
             window,
-            theme_file: PathBuf::from("/usr/share/gnome-mahjongg/themes/postmodern.svg"),
-            map_file: PathBuf::from("/usr/share/gnome-mahjongg/maps/mahjongg.map"),
-            layout_name: "easy".to_string(),
+            theme_file: None,
+            map: map::default::EASY.clone(),
             background_color: [52.0 / 255.0, 56.0 / 255.0, 91.0 / 255.0],
         }
     }
 
-    pub fn build(&mut self) -> Result<Game> {
-        let theme_texture = if let Ok(buf) = render_svg(&self.theme_file) {
+    pub fn build(mut self) -> Result<Game> {
+        let theme_file = self
+            .theme_file
+            .as_ref()
+            .ok_or_else(|| anyhow!("Theme file not provided"))?;
+
+        let theme_texture = if let Ok(buf) = render_svg(&theme_file) {
             Texture::from_image(
                 &mut self.window.create_texture_context(),
                 &buf,
@@ -329,24 +338,21 @@ impl<'a> GameBuilder<'a> {
         } else {
             Texture::from_path(
                 &mut self.window.create_texture_context(),
-                &self.theme_file,
+                &theme_file,
                 Flip::None,
                 &TextureSettings::new(),
             )
             .map_err(|_| anyhow!("Failed to load texture"))?
         };
 
-        let mut maps = map::parse_maps(&self.map_file)?;
-        let mut map = maps
-            .remove(&self.layout_name)
-            .ok_or_else(|| anyhow!("Map not found"))?;
-        map.slots.sort_by(|a, b| {
+        self.map.slots.sort_by(|a, b| {
             a.z.cmp(&b.z)
                 .then_with(|| b.x.cmp(&a.x))
                 .then_with(|| a.y.cmp(&b.y))
         });
 
-        let mut tiles: Vec<_> = map
+        let mut tiles: Vec<_> = self
+            .map
             .slots
             .iter()
             .map(|slot| Tile {
@@ -360,7 +366,7 @@ impl<'a> GameBuilder<'a> {
         fill_random_ids(&mut tiles, &mut rng)?;
 
         let game = Game {
-            map,
+            map: self.map,
             background_color: [
                 self.background_color[0],
                 self.background_color[1],
@@ -376,22 +382,17 @@ impl<'a> GameBuilder<'a> {
         Ok(game)
     }
 
-    pub fn theme_file<P: AsRef<Path>>(&mut self, theme_file: P) -> &mut Self {
-        self.theme_file = theme_file.as_ref().to_path_buf();
+    pub fn theme_file<P: AsRef<Path>>(mut self, theme_file: P) -> Self {
+        self.theme_file = Some(theme_file.as_ref().to_path_buf());
         self
     }
 
-    pub fn map_file<P: AsRef<Path>>(&mut self, map_file: P) -> &mut Self {
-        self.map_file = map_file.as_ref().to_path_buf();
+    pub fn map(mut self, map: Map) -> Self {
+        self.map = map;
         self
     }
 
-    pub fn layout_name(&mut self, layout_name: &str) -> &mut Self {
-        self.layout_name = layout_name.to_string();
-        self
-    }
-
-    pub fn background_color(&mut self, background_color: &[f32; 3]) -> &mut Self {
+    pub fn background_color(mut self, background_color: &[f32; 3]) -> Self {
         self.background_color = *background_color;
         self
     }
