@@ -24,7 +24,7 @@ mod xml {
 
     #[derive(Deserialize)]
     pub struct Layer {
-        pub z: usize,
+        pub z: isize,
         #[serde(rename = "$value")]
         pub items: Vec<Item>,
     }
@@ -34,39 +34,39 @@ mod xml {
     pub enum Item {
         Row {
             #[serde(deserialize_with = "deserialize_pos")]
-            left: usize,
+            left: isize,
             #[serde(deserialize_with = "deserialize_pos")]
-            right: usize,
+            right: isize,
             #[serde(deserialize_with = "deserialize_pos")]
-            y: usize,
+            y: isize,
         },
         Column {
             #[serde(deserialize_with = "deserialize_pos")]
-            x: usize,
+            x: isize,
             #[serde(deserialize_with = "deserialize_pos")]
-            top: usize,
+            top: isize,
             #[serde(deserialize_with = "deserialize_pos")]
-            bottom: usize,
+            bottom: isize,
         },
         Block {
             #[serde(deserialize_with = "deserialize_pos")]
-            left: usize,
+            left: isize,
             #[serde(deserialize_with = "deserialize_pos")]
-            right: usize,
+            right: isize,
             #[serde(deserialize_with = "deserialize_pos")]
-            top: usize,
+            top: isize,
             #[serde(deserialize_with = "deserialize_pos")]
-            bottom: usize,
+            bottom: isize,
         },
         Tile {
             #[serde(deserialize_with = "deserialize_pos")]
-            x: usize,
+            x: isize,
             #[serde(deserialize_with = "deserialize_pos")]
-            y: usize,
+            y: isize,
         },
     }
 
-    fn deserialize_pos<'de, D>(deserializer: D) -> Result<usize, D::Error>
+    fn deserialize_pos<'de, D>(deserializer: D) -> Result<isize, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -75,12 +75,12 @@ mod xml {
             string
                 .trim_end_matches(".5")
                 .parse()
-                .map(|x: usize| x * 2 + 1)
+                .map(|x: isize| x * 2 + 1)
                 .map_err(serde::de::Error::custom)
         } else {
             string
                 .parse()
-                .map(|x: usize| x * 2)
+                .map(|x: isize| x * 2)
                 .map_err(serde::de::Error::custom)
         }
     }
@@ -88,9 +88,9 @@ mod xml {
 
 #[derive(Debug, Clone)]
 pub struct Slot {
-    pub x: usize,
-    pub y: usize,
-    pub z: usize,
+    pub x: isize,
+    pub y: isize,
+    pub z: isize,
 }
 
 #[derive(Debug, Clone)]
@@ -109,7 +109,7 @@ fn calc_size(slots: &[Slot]) -> (usize, usize) {
         height = height.max(slot.y);
     }
 
-    (width + 2, height + 2)
+    (width as usize + 2, height as usize + 2)
 }
 
 pub fn parse_maps<P: AsRef<Path>>(path: P) -> Result<Vec<Map>> {

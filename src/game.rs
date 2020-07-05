@@ -78,13 +78,11 @@ impl Game {
             pointed
         } else {
             // points to nothing
-            self.selected = None;
             return;
         };
 
         if !tile_is_exposed(pointed, &self.tiles) {
             // pointed tile is not removable
-            self.selected = None;
             return;
         }
 
@@ -123,11 +121,7 @@ impl Game {
             self.tiles[last.0].visible = true;
             self.tiles[last.1].visible = true;
 
-            if let Some(selected) = &self.selected {
-                if !tile_is_exposed(*selected, &self.tiles) {
-                    self.selected = None;
-                }
-            }
+            self.selected = None;
         }
     }
 
@@ -152,13 +146,7 @@ impl Game {
                 && pos.y as f64 <= cursor_pos[1]
                 && cursor_pos[1] < pos.y as f64 + height
             {
-                if let Some(p) = pointed {
-                    if tile.slot.z > self.tiles[p].slot.z || tile.slot.x < self.tiles[p].slot.x {
-                        pointed = Some(i);
-                    }
-                } else {
-                    pointed = Some(i);
-                }
+                pointed = Some(i);
             }
         }
 
@@ -236,19 +224,16 @@ fn tile_is_exposed(index: usize, tiles: &[Tile]) -> bool {
         }
 
         if tile.slot.z == slot.z + 1
-            && tile.slot.x as isize >= slot.x as isize - 1
+            && tile.slot.x >= slot.x - 1
             && tile.slot.x <= slot.x + 1
-            && tile.slot.y as isize >= slot.y as isize - 1
+            && tile.slot.y >= slot.y - 1
             && tile.slot.y <= slot.y + 1
         {
             return false;
         }
 
-        if tile.slot.z == slot.z
-            && tile.slot.y as isize >= slot.y as isize - 1
-            && tile.slot.y <= slot.y + 1
-        {
-            if tile.slot.x as isize == slot.x as isize - 2 {
+        if tile.slot.z == slot.z && tile.slot.y >= slot.y - 1 && tile.slot.y <= slot.y + 1 {
+            if tile.slot.x == slot.x - 2 {
                 blocked_left = true;
             }
             if tile.slot.x == slot.x + 2 {
@@ -325,7 +310,6 @@ impl<'a> GameBuilder<'a> {
     pub fn build(mut self) -> Result<Game> {
         let theme_file = self
             .theme_file
-            .as_ref()
             .ok_or_else(|| anyhow!("Theme file not provided"))?;
 
         let theme_texture = if let Ok(buf) = render_svg(&theme_file) {
@@ -345,11 +329,10 @@ impl<'a> GameBuilder<'a> {
             .map_err(|_| anyhow!("Failed to load texture"))?
         };
 
-        self.map.slots.sort_by(|a, b| {
-            a.z.cmp(&b.z)
-                .then_with(|| b.x.cmp(&a.x))
-                .then_with(|| a.y.cmp(&b.y))
-        });
+        // sort by draw order
+        self.map
+            .slots
+            .sort_unstable_by(|a, b| a.z.cmp(&b.z).then_with(|| (a.y - b.y).cmp(&(a.x - b.x))));
 
         let mut tiles: Vec<_> = self
             .map
@@ -398,6 +381,7 @@ impl<'a> GameBuilder<'a> {
     }
 }
 
+/// Generates random solvable configuration
 fn fill_random_ids(tiles: &mut [Tile], rng: &mut ThreadRng) -> Result<()> {
     let mut pairs: Vec<usize> = (0..tiles.len() / 2).collect();
     pairs.shuffle(rng);
