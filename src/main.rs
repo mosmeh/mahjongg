@@ -45,6 +45,8 @@ struct Opt {
 fn main() -> Result<()> {
     let opt = Opt::from_args();
 
+    let background_color = parse_color(&opt.background)?;
+
     anyhow::ensure!(opt.theme.exists(), "Theme file not found");
 
     let map = {
@@ -73,7 +75,6 @@ fn main() -> Result<()> {
             }
         }
     };
-    let background_color = parse_color(&opt.background)?;
 
     let mut window: PistonWindow = WindowSettings::new(&map.name, [opt.width, opt.height])
         .build()
