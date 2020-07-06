@@ -111,6 +111,10 @@ fn parse_layout_file<P: AsRef<Path>>(path: P) -> Result<Vec<Slot>> {
                 y = 0;
                 z += 1;
                 if z == depth as isize {
+                    if slots.len() % 2 != 0 {
+                        break;
+                    }
+
                     return Ok(slots);
                 }
             }
