@@ -76,9 +76,9 @@ fn parse_layout_file<P: AsRef<Path>>(path: P) -> Result<Vec<Slot>> {
             for line in lines {
                 let line = line?;
                 match line.as_bytes()[0] {
-                    b'w' => width = line.trim_start_matches('w').parse()?,
-                    b'h' => height = line.trim_start_matches('h').parse()?,
-                    b'd' => depth = line.trim_start_matches('d').parse()?,
+                    b'w' => width = line.strip_prefix('w').unwrap().parse()?,
+                    b'h' => height = line.strip_prefix('h').unwrap().parse()?,
+                    b'd' => depth = line.strip_prefix('d').unwrap().parse()?,
                     b'#' => (),
                     _ => data.push_str(&line),
                 }

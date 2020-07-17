@@ -145,9 +145,8 @@ mod markup {
         D: Deserializer<'de>,
     {
         let string = String::deserialize(deserializer)?;
-        if string.ends_with(".5") {
+        if let Some(string) = string.strip_suffix(".5") {
             string
-                .trim_end_matches(".5")
                 .parse()
                 .map(|x: isize| x * 2 + 1)
                 .map_err(serde::de::Error::custom)
