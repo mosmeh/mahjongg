@@ -2,7 +2,9 @@
 
 [![build](https://github.com/mosmeh/mahjongg/workflows/build/badge.svg)](https://github.com/mosmeh/mahjongg/actions)
 
-GNOME Mahjongg-compatible Mahjong solitaire (aka Shanghai)
+Mahjong solitaire game (aka Shanghai) compatible with GNOME Mahjongg and KMahjongg
+
+![](https://user-images.githubusercontent.com/1721932/88615246-7e5ab100-d0cc-11ea-885e-3c63304e5515.png)
 
 ## Installation
 
@@ -14,7 +16,7 @@ cargo install --path .
 
 ## Usage
 
-On Ubuntu, install `gnome-mahjongg` and `mahjongg` will automatically use `gnome-mahjongg`'s assets located in `/usr/share/gnome-mahjongg/`.
+On Ubuntu, `mahjongg` will automatically use `gnome-mahjongg`'s assets located in `/usr/share/gnome-mahjongg/`.
 
 ```sh
 sudo apt install -y gnome-mahjongg
