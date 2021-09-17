@@ -6,37 +6,31 @@ Mahjong solitaire game (aka Shanghai) compatible with GNOME Mahjongg and KMahjon
 
 ![](https://user-images.githubusercontent.com/1721932/88615246-7e5ab100-d0cc-11ea-885e-3c63304e5515.png)
 
-## Installation
+## How to play
 
-Clone this repository and run:
-
-```sh
-cargo install --path .
-```
-
-## Usage
-
-On Ubuntu, `mahjongg` will automatically use `gnome-mahjongg`'s assets located in `/usr/share/gnome-mahjongg/`.
+On Ubuntu, `gnome-mahjongg`'s assets located in `/usr/share/gnome-mahjongg/` are automatically used.
 
 ```sh
 sudo apt install -y gnome-mahjongg
-mahjongg
+cargo run --release
 ```
 
 On Windows and other systems where `gnome-mahjongg` is not available, clone [gnome-mahjongg's repository](https://gitlab.gnome.org/GNOME/gnome-mahjongg) and provide its assets with command-line options:
 
 ```sh
-mahjongg -t gnome-mahjongg/data/postmodern.svg -m gnome-mahjongg/data/mahjongg.map
+git clone https://gitlab.gnome.org/GNOME/gnome-mahjongg.git
+cargo run --release -- -t gnome-mahjongg/data/postmodern.svg -m gnome-mahjongg/data/mahjongg.map
 ```
 
 You can also play with [KMahjongg](https://github.com/KDE/kmahjongg)'s layouts:
 
 ```sh
 sudo apt install -y kmahjongg
-mahjongg -m /usr/share/kmahjongg/layouts
+cargo run --release -- -m /usr/share/kmahjongg/layouts
 
-# or clone the repository and
-mahjongg -m kmahjongg/layouts
+# or
+git clone https://github.com/KDE/kmahjongg.git
+cargo run --release -- -m kmahjongg/layouts
 ```
 
 ## Command-line options
