@@ -30,11 +30,9 @@ pub fn load_from_paths<P: AsRef<Path>>(paths: &[P]) -> Vec<Map> {
             }
         } else if path.as_ref().is_dir() {
             if let Ok(rd) = path.as_ref().read_dir() {
-                for entry in rd {
-                    if let Ok(entry) = entry {
-                        if let Ok(mut loaded) = load_maps(entry.path()) {
-                            maps.append(&mut loaded);
-                        }
+                for entry in rd.flatten() {
+                    if let Ok(mut loaded) = load_maps(entry.path()) {
+                        maps.append(&mut loaded);
                     }
                 }
             }

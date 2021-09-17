@@ -480,7 +480,7 @@ fn find_all_matches(tiles: &[Tile]) -> Vec<Match> {
     set.drain().collect()
 }
 
-fn find_matches<'a>(index: usize, tiles: &'a [Tile]) -> impl Iterator<Item = Match> + 'a {
+fn find_matches(index: usize, tiles: &[Tile]) -> impl Iterator<Item = Match> + '_ {
     (0..tiles.len())
         .filter(move |i| {
             *i != index
