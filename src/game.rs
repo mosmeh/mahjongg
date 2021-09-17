@@ -492,10 +492,17 @@ fn find_matches<'a>(index: usize, tiles: &'a [Tile]) -> impl Iterator<Item = Mat
 }
 
 fn render_svg<P: AsRef<Path>>(path: P) -> Result<::image::RgbaImage> {
-    let tree = usvg::Tree::from_file(path, &usvg::Options::default())?;
-    let image = resvg::render(&tree, usvg::FitTo::Original, None)
+    let data = std::fs::read(path)?;
+    let tree = usvg::Tree::from_data(&data, &usvg::Options::default().to_ref())?;
+
+    let size = tree.svg_node().size.to_screen_size();
+    let mut pixmap = tiny_skia::Pixmap::new(size.width(), size.height())
+        .ok_or_else(|| anyhow!("Failed to create pixmap"))?;
+
+    resvg::render(&tree, usvg::FitTo::Original, pixmap.as_mut())
         .ok_or_else(|| anyhow!("Failed to render SVG"))?;
-    let buf = ::image::RgbaImage::from_raw(image.width(), image.height(), image.data().to_vec())
+
+    let buf = ::image::RgbaImage::from_vec(pixmap.width(), pixmap.height(), pixmap.take())
         .ok_or_else(|| anyhow!("Failed to construct image buffer from rendered SVG"))?;
 
     Ok(buf)
